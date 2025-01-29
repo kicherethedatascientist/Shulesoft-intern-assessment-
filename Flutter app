@@ -1,1 +1,226 @@
+ 
+1. **Create a New Flutter Project** (If you haven’t already)  
+   ```bash
+   flutter create simple_app
+   cd simple_app
+   ```
 
+2. **Replace all the files as instructed below.**  
+3. **Run `flutter run` to test the app.**  
+
+## **1. Modify `lib/main.dart`**  
+This is the main entry point for your Flutter app.  
+**Replace the contents of `lib/main.dart` with the following:**  
+
+```dart
+import 'package:flutter/material.dart';
+import 'form_screen.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Simple App',
+      home: FormScreen(),
+    );
+  }
+}
+```
+
+## **2. Create `lib/form_screen.dart`**  
+This is the first screen where users will enter their name, email, and phone.  
+
+**Create a new file `lib/form_screen.dart` and copy the following content:**  
+
+```dart
+import 'package:flutter/material.dart';
+import 'summary_screen.dart';
+
+class FormScreen extends StatefulWidget {
+  @override
+  _FormScreenState createState() => _FormScreenState();
+}
+
+class _FormScreenState extends State<FormScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+
+  void _submitForm() {
+    if (_formKey.currentState!.validate()) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SummaryScreen(
+            name: _nameController.text,
+            email: _emailController.text,
+            phone: _phoneController.text,
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Form Screen')),
+      body: Padding(
+        padding: EdgeInsets.all(16),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              TextFormField(
+                controller: _nameController,
+                decoration: InputDecoration(labelText: 'Name'),
+                validator: (value) => value!.isEmpty ? 'Enter your name' : null,
+              ),
+              TextFormField(
+                controller: _emailController,
+                decoration: InputDecoration(labelText: 'Email'),
+                keyboardType: TextInputType.emailAddress,
+                validator: (value) =>
+                    !value!.contains('@') ? 'Enter a valid email' : null,
+              ),
+              TextFormField(
+                controller: _phoneController,
+                decoration: InputDecoration(labelText: 'Phone'),
+                keyboardType: TextInputType.phone,
+                validator: (value) =>
+                    value!.length < 10 ? 'Enter a valid phone number' : null,
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _submitForm,
+                child: Text('Submit'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+```
+## **3. Create `lib/summary_screen.dart`**  
+This screen displays the submitted data.  
+
+**Create a new file `lib/summary_screen.dart` and copy the following content:**  
+
+```dart
+import 'package:flutter/material.dart';
+import 'api_screen.dart';
+
+class SummaryScreen extends StatelessWidget {
+  final String name, email, phone;
+
+  SummaryScreen({required this.name, required this.email, required this.phone});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Summary')),
+      body: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Name: $name', style: TextStyle(fontSize: 18)),
+            Text('Email: $email', style: TextStyle(fontSize: 18)),
+            Text('Phone: $phone', style: TextStyle(fontSize: 18)),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => APIDataScreen()),
+                );
+              },
+              child: Text('Fetch API Data'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+``
+## **4. Create `lib/api_screen.dart`**  
+This screen fetches user data from an online API.  
+
+**Create a new file `lib/api_screen.dart` and copy the following content:**  
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+class APIDataScreen extends StatefulWidget {
+  @override
+  _APIDataScreenState createState() => _APIDataScreenState();
+}
+
+class _APIDataScreenState extends State<APIDataScreen> {
+  List users = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchData();
+  }
+
+  Future<void> fetchData() async {
+    final response =
+        await http.get(Uri.parse('https://jsonplaceholder.typicode.com/users'));
+    if (response.statusCode == 200) {
+      setState(() {
+        users = json.decode(response.body);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('API Data')),
+      body: users.isEmpty
+          ? Center(child: CircularProgressIndicator())
+          : ListView.builder(
+              itemCount: users.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text(users[index]['name']),
+                );
+              },
+            ),
+    );
+  }
+}
+``
+## **5. Install Dependencies**  
+Since this app fetches data from an API, you need the `http` package.  
+
+Open `pubspec.yaml` and add:  
+```yaml
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^0.13.6
+```
+
+Then, run:  
+```bash
+flutter pub get
+```
+## **6. Run the App**  
+To start the app, use:  
+```bash
+flutter run
+```
