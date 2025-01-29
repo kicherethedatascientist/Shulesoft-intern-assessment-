@@ -1,0 +1,201 @@
+
+```php
+// Step 1: Create a New Laravel Project
+composer create-project --prefer-dist laravel/laravel blog_app
+cd blog_app
+
+// Step 2: Configure .env file for your database connection
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=blog_db
+DB_USERNAME=root
+DB_PASSWORD=
+
+// Create the database `blog_db` in MySQL.
+
+// Step 3: Create the Post Model and Migration
+php artisan make:model Post -m
+
+// Step 4: Modify Migration File for Blog Post Table
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration {
+    public function up() {
+        Schema::create('posts', function (Blueprint $table) {
+            $table->id();
+            $table->string('title');
+            $table->text('content');
+            $table->timestamps();
+        });
+    }
+
+    public function down() {
+        Schema::dropIfExists('posts');
+    }
+};
+
+// Step 5: Run Migrations to Create the Posts Table
+php artisan migrate
+
+// Step 6: Define API Routes
+use App\Http\Controllers\PostController;
+
+Route::get('/posts', [PostController::class, 'index']);
+Route::post('/posts', [PostController::class, 'store']);
+Route::put('/posts/{id}', [PostController::class, 'update']);
+Route::delete('/posts/{id}', [PostController::class, 'destroy']);
+
+// Step 7: Create PostController
+php artisan make:controller PostController
+
+// Edit app/Http/Controllers/PostController.php
+namespace App\Http\Controllers;
+
+use App\Models\Post;
+use Illuminate\Http\Request;
+
+class PostController extends Controller
+{
+    public function index(Request $request) {
+        $query = Post::query();
+        
+        if ($request->has('search')) {
+            $query->where('title', 'like', '%' . $request->search . '%');
+        }
+        
+        $posts = $query->paginate(10);
+        return response()->json($posts);
+    }
+
+    public function store(Request $request) {
+        $request->validate([
+            'title' => 'required|string',
+            'content' => 'required|min:10|string',
+        ]);
+
+        $post = Post::create($request->all());
+        return response()->json($post, 201);
+    }
+
+    public function update(Request $request, $id) {
+        $request->validate([
+            'title' => 'required|string',
+            'content' => 'required|min:10|string',
+        ]);
+
+        $post = Post::findOrFail($id);
+        $post->update($request->all());
+        
+        return response()->json($post);
+    }
+
+    public function destroy($id) {
+        $post = Post::findOrFail($id);
+        $post->delete();
+        
+        return response()->json(null, 204);
+    }
+}
+
+// Step 8: Create Blade Views for Frontend Integration
+
+// resources/views/layouts/app.blade.php
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog App</title>
+</head>
+<body>
+    @yield('content')
+</body>
+</html>
+
+// resources/views/posts/index.blade.php
+@extends('layouts.app')
+
+@section('content')
+    <h1>Blog Posts</h1>
+    <a href="{{ route('posts.create') }}">Add New Post</a>
+    
+    <form action="" method="GET" class="mb-4">
+        <input type="text" name="search" placeholder="Search posts" value="{{ request('search') }}">
+        <button type="submit">Search</button>
+    </form>
+    
+    <ul>
+        @foreach ($posts as $post)
+            <li>
+                <h2>{{ $post->title }}</h2>
+                <p>{{ Str::limit($post->content, 100) }}</p>
+                <a href="{{ route('posts.edit', $post->id) }}">Edit</a>
+                <form action="{{ route('posts.destroy', $post->id) }}" method="POST" style="display:inline;">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit">Delete</button>
+                </form>
+            </li>
+        @endforeach
+    </ul>
+
+    {{ $posts->links() }}
+@endsection
+
+// resources/views/posts/create.blade.php
+@extends('layouts.app')
+
+@section('content')
+    <h1>Create Post</h1>
+    
+    <form action="{{ route('posts.store') }}" method="POST">
+        @csrf
+        <label for="title">Title:</label>
+        <input type="text" name="title" required>
+        
+        <label for="content">Content:</label>
+        <textarea name="content" required></textarea>
+        
+        <button type="submit">Create Post</button>
+    </form>
+@endsection
+
+// resources/views/posts/edit.blade.php
+@extends('layouts.app')
+
+@section('content')
+    <h1>Edit Post</h1>
+    
+    <form action="{{ route('posts.update', $post->id) }}" method="POST">
+        @csrf
+        @method('PUT')
+        <label for="title">Title:</label>
+        <input type="text" name="title" value="{{ $post->title }}" required>
+        
+        <label for="content">Content:</label>
+        <textarea name="content" required>{{ $post->content }}</textarea>
+        
+        <button type="submit">Update Post</button>
+    </form>
+@endsection
+
+// Step 9: Define Web Routes
+Route::resource('posts', PostController::class);
+
+// Step 10: Run the Application
+php artisan serve
+
+// API Endpoints:
+// GET /api/posts - List all posts with pagination and optional search query
+// POST /api/posts - Create a new post
+// PUT /api/posts/{id} - Update an existing post
+// DELETE /api/posts/{id} - Delete a specific post
+
+// Frontend functionality:
+// Add, edit, delete, and view posts with search and pagination.
+// The posts are displayed on the homepage and managed through the web interface.
+
+```
